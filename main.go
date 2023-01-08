@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-	//"strings"
+	"strings"
 )
 
 type Cell struct {
@@ -15,26 +15,23 @@ type Cell struct {
 // Generation Represents 2D arrays of Generations.
 type Generation [][]string
 
+const numOfNeighbors int = 8
+const numOfGenerations int = 10
+
 func main() {
 	var curGen, nextGen Generation
-
-	N, S, M := getInput()
-	rand.Seed(int64(S))
+	N := getInput()
 	curGen = fillMatrix(N)
 
-	if M == 0 {
-		printMatrix(curGen)
-		return
-	}
-
 	// create new generations
-	for i := 0; i < M; i++ {
-		//	printMatrix(curGen)
-		//	fmt.Println(i, ":", strings.Repeat("-", N))
+	for i := 1; i <= numOfGenerations; i++ {
 		nextGen = evolve(curGen)
+
+		fmt.Printf("Generation #%d\n", i)
+		fmt.Printf("Alive: %d\n", countAliveInGeneration(&nextGen))
 		copy(curGen, nextGen)
+		printMatrix(curGen)
 	}
-	printMatrix(curGen)
 }
 
 func evolve(g Generation) Generation {
@@ -42,45 +39,45 @@ func evolve(g Generation) Generation {
 	var nextGen = make(Generation, len(g))
 	//fmt.Printf("evolve(): len=%v, cap=%v\n", len(nextGen), cap(nextGen))
 
-	cmap := make(map[Cell]int)
+	cellMap := make(map[Cell]int)
 	for i := 0; i < len(g); i++ {
 		nextGen[i] = make([]string, 0, len(nextGen))
 		//fmt.Printf("evolve(): len[i]=%v, cap[i]=%v\n", len(nextGen[i]), cap(nextGen[i]))
 		for j := 0; j < len(g); j++ {
 			cell = Cell{i, j}
 			value := g[cell.Row][cell.Col]
-			if _, ok := cmap[cell]; ok {
+			if _, ok := cellMap[cell]; ok {
 				continue
 			}
 			neighbors := getNeighbors(len(g), len(g[i]), cell)
-			cmap[cell] = countAlives(&g, &neighbors)
-			////fmt.Printf("evolve(): cmap=%v\n", cmap)
+			cellMap[cell] = countAliveInNeighbors(&g, &neighbors)
+			////fmt.Printf("evolve(): cellMap=%v\n", cellMap)
 
 			switch value {
 			case "O":
 				// A live cell survives if it has two or three
 				// live neighbors; otherwise, it dies of boredom
 				// (<2) or overpopulation (>3).
-				if cmap[cell] == 2 || cmap[cell] == 3 {
+				if cellMap[cell] == 2 || cellMap[cell] == 3 {
 					//fmt.Printf("\tcell: %v=%q SURVIVES, alive_count=%v\n",
-					//	cell, value, cmap[cell])
+					//	cell, value, cellMap[cell])
 					nextGen[i] = append(nextGen[i], "O")
 				} else {
 					//fmt.Printf("\tcell: %v=%q DIES, alive_count=%v\n",
-					//	cell, value, cmap[cell])
+					//	cell, value, cellMap[cell])
 					nextGen[i] = append(nextGen[i], " ")
 				}
 			case " ":
 				// A dead cell is reborn if it has exactly three
 				// live neighbors.
-				if value == " " && cmap[cell] == 3 {
-					//fmt.Printf("\tcell: %v=%q REBORNS, alive_count=%v\n",
-					//	cell, value, cmap[cell])
+				if value == " " && cellMap[cell] == 3 {
+					//fmt.Printf("\tcell: %v=%q REBORN, alive_count=%v\n",
+					//	cell, value, cellMap[cell])
 					nextGen[i] = append(nextGen[i], "O")
 				} else {
 					// stays dead
 					//fmt.Printf("\tcell: %v=%q DIES, alive_count=%v\n",
-					//	cell, value, cmap[cell])
+					//	cell, value, cellMap[cell])
 					nextGen[i] = append(nextGen[i], " ")
 				}
 			}
@@ -90,16 +87,25 @@ func evolve(g Generation) Generation {
 	return nextGen
 }
 
-func countAlives(m *Generation, cs *[]Cell) int {
+func countAliveInGeneration(m *Generation) int {
+	alive := 0
+	for _, slice := range *m {
+		s := strings.Join(slice, "")
+		alive += strings.Count(s, "O")
+	}
+	return alive
+}
+
+func countAliveInNeighbors(m *Generation, cs *[]Cell) int {
 	alive := 0
 	for _, v := range *cs {
-		if alive == 8 {
+		if alive == numOfNeighbors {
 			// cannot have more than 8 alive neighbors
 			return alive
 		}
 		if (*m)[v.Row][v.Col] == "O" {
 			alive++
-			//fmt.Printf("countAlives(): m[%v][%v]=%v, val=%v\n",
+			//fmt.Printf("countAlive(): m[%v][%v]=%v, val=%v\n",
 			//	v.Row, v.Col, (*m)[v.Row][v.Col], v)
 		}
 	}
@@ -109,7 +115,7 @@ func countAlives(m *Generation, cs *[]Cell) int {
 func getNeighbors(lrow, lcol int, c Cell) []Cell {
 	rows, cols := lrow, lcol
 	//fmt.Printf("\ngetNei(): CELL: %v\n", c)
-	neighbors := make([]Cell, 0, 8) // each cell has 8 neighbor
+	neighbors := make([]Cell, 0, numOfNeighbors) // each cell has 8 neighbor
 
 	for i := c.Row - 1; i <= c.Row+1; i++ {
 		for j := c.Col - 1; j <= c.Col+1; j++ {
@@ -124,7 +130,7 @@ func getNeighbors(lrow, lcol int, c Cell) []Cell {
 	}
 
 	// STOP processing if the length of `neighbors` is 8!
-	if len(neighbors) != 8 {
+	if len(neighbors) != numOfNeighbors {
 		// need to pass the original matrix length
 		neighbors = processDirection(neighbors, c, lrow, lcol)
 	}
@@ -141,7 +147,7 @@ func getNeighbors(lrow, lcol int, c Cell) []Cell {
 }
 
 func processDirection(n []Cell, c Cell, mRow, lCol int) []Cell {
-	tmap := make(map[Cell]bool, 0)
+	directionMap := make(map[Cell]bool, 0)
 	for i := range n {
 		rc := new(Cell)
 
@@ -159,8 +165,8 @@ func processDirection(n []Cell, c Cell, mRow, lCol int) []Cell {
 			//fmt.Printf("\t\t-> adding: %v\n", *rc)
 		}
 
-		if _, ok := tmap[*rc]; !ok {
-			tmap[*rc] = true
+		if _, ok := directionMap[*rc]; !ok {
+			directionMap[*rc] = true
 			n = append(n, *rc)
 		}
 	}
@@ -225,19 +231,19 @@ func onCorner(lr, lc int, c Cell) ([]Cell, bool) {
 	switch c {
 	case topRight:
 		corner = true
-		//fmt.Printf("\t-> cell is on TOPRIGHT corner: %v\n", topRight)
+		//fmt.Printf("\t-> cell is on TOP RIGHT corner: %v\n", topRight)
 		cs = append(cs, Cell{0, 0}, Cell{1, 0}, Cell{rows - 1, 0})
 	case topLeft:
 		corner = true
-		//fmt.Printf("\t-> cell is on TOPLEFT corner: %v\n", topLeft)
+		//fmt.Printf("\t-> cell is on TOP LEFT corner: %v\n", topLeft)
 		cs = append(cs, Cell{0, cols - 1}, Cell{1, cols - 1}, Cell{rows - 1, cols - 1})
 	case bottomRight:
 		corner = true
-		//fmt.Printf("\t-> cell is on BOTTOMRIGHT corner: %v\n", bottomRight)
+		//fmt.Printf("\t-> cell is on BOTTOM RIGHT corner: %v\n", bottomRight)
 		cs = append(cs, Cell{0, 0}, Cell{rows - 2, 0}, Cell{rows - 1, 0})
 	case bottomLeft:
 		corner = true
-		//fmt.Printf("\t-> cell is on BOTTOMLEFT corner: %v\n", bottomLeft)
+		//fmt.Printf("\t-> cell is on BOTTOM LEFT corner: %v\n", bottomLeft)
 		cs = append(cs, Cell{0, cols - 1}, Cell{rows - 2, cols - 1}, Cell{rows - 1, cols - 1})
 	default:
 		corner = false
@@ -274,12 +280,8 @@ func fillMatrix(N int) Generation {
 	return matrix
 }
 
-func getInput() (int, int, int) {
-	var (
-		N int // size of the universe
-		S int // seed
-		M int // number of generations
-	)
-	fmt.Scanf("%d %d %d", &N, &S, &M)
-	return N, S, M
+func getInput() int {
+	var N int // size of the universe
+	fmt.Scanf("%d", &N)
+	return N
 }
