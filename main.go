@@ -12,7 +12,7 @@ type Cell struct {
 	Col int
 }
 
-// Represents 2D arrays of Generations.
+// Generation Represents 2D arrays of Generations.
 type Generation [][]string
 
 func main() {
@@ -53,7 +53,7 @@ func evolve(g Generation) Generation {
 				continue
 			}
 			neighbors := getNeighbors(len(g), len(g[i]), cell)
-			cmap[cell] = countAlives(&g, &neighbors, cell)
+			cmap[cell] = countAlives(&g, &neighbors)
 			////fmt.Printf("evolve(): cmap=%v\n", cmap)
 
 			switch value {
@@ -90,7 +90,7 @@ func evolve(g Generation) Generation {
 	return nextGen
 }
 
-func countAlives(m *Generation, cs *[]Cell, c Cell) int {
+func countAlives(m *Generation, cs *[]Cell) int {
 	alive := 0
 	for _, v := range *cs {
 		if alive == 8 {
