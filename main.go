@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sort"
 	"strings"
+	"time"
 )
 
 type Cell struct {
@@ -26,11 +27,15 @@ func main() {
 	// create new generations
 	for i := 1; i <= numOfGenerations; i++ {
 		nextGen = evolve(curGen)
-
 		fmt.Printf("Generation #%d\n", i)
 		fmt.Printf("Alive: %d\n", countAliveInGeneration(&nextGen))
 		copy(curGen, nextGen)
 		printMatrix(curGen)
+
+		// Optional: clearing screen after 500ms to
+		// make the evolution more streamlined
+		time.Sleep(500 * time.Millisecond)
+		fmt.Print("\033[H\033[2J")
 	}
 }
 
