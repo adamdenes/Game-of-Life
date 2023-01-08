@@ -74,3 +74,21 @@ O   OO O
 O O   O  O
        OO
 ```
+# Description Part 2
+
+Well, now the universe is created, and its laws work properly.
+
+Let’s visualize evolution. In the previous stage, we could see only one generation. 
+It would be better if the program displayed each generation sequentially, one after one.
+
+For this stage, the only input is an int number for the size of the universe. 
+The universe for this stage is a square. Also, in this stage, you shouldn't set the seed 
+to generate an initial position; it should be random.
+
+The launched application must show evolution in progress. Output every generation to the console,
+one after one; you should output at least 10 generations before stopping the application.
+
+Below you can see an animated GIF with an example of the output of each generation one after one.
+Even though the previous generation output gets cleared before printing a new generation to the:
+
+![Life goes by](life.gif)
