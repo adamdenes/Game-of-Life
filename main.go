@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,25 +24,32 @@ func main() {
 	N := getInput()
 	curGen = fillMatrix(N)
 
-	// create new generations
+	// create new generations concurrently
+	wg := sync.WaitGroup{}
 	for i := 1; i <= numOfGenerations; i++ {
-		nextGen = evolve(curGen)
-		fmt.Printf("Generation #%d\n", i)
-		fmt.Printf("Alive: %d\n", countAliveInGeneration(&nextGen))
-		copy(curGen, nextGen)
-		printMatrix(curGen)
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			nextGen = evolve(curGen)
+			fmt.Printf("Generation #%d\n", i)
+			fmt.Printf("Alive: %d\n", countAliveInGeneration(&nextGen))
+			curGen = nextGen
+			printMatrix(curGen)
 
+		}(i)
 		// Optional: clearing screen after 500ms to
 		// make the evolution more streamlined
 		time.Sleep(500 * time.Millisecond)
 		fmt.Print("\033[H\033[2J")
 	}
+	wg.Wait()
 }
 
 func evolve(g Generation) Generation {
 	var cell = Cell{}
 	var nextGen = make(Generation, len(g))
 	//fmt.Printf("evolve(): len=%v, cap=%v\n", len(nextGen), cap(nextGen))
+	var neighbors []Cell
 
 	cellMap := make(map[Cell]int)
 	for i := 0; i < len(g); i++ {
@@ -54,7 +61,7 @@ func evolve(g Generation) Generation {
 			if _, ok := cellMap[cell]; ok {
 				continue
 			}
-			neighbors := getNeighbors(len(g), len(g[i]), cell)
+			neighbors = getNeighbors(len(g), len(g[i]), cell)
 			cellMap[cell] = countAliveInNeighbors(&g, &neighbors)
 			////fmt.Printf("evolve(): cellMap=%v\n", cellMap)
 
@@ -92,11 +99,14 @@ func evolve(g Generation) Generation {
 	return nextGen
 }
 
-func countAliveInGeneration(m *Generation) int {
+func countAliveInGeneration(g *Generation) int {
 	alive := 0
-	for _, slice := range *m {
-		s := strings.Join(slice, "")
-		alive += strings.Count(s, "O")
+	for _, row := range *g {
+		for _, cell := range row {
+			if cell == "O" {
+				alive++
+			}
+		}
 	}
 	return alive
 }
